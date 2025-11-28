@@ -1,0 +1,3 @@
+# Dependências Python para processamento em lote
+# Nenhuma dependência externa necessária - usa apenas bibliotecas padrão do Python 3
+

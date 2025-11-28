@@ -1,0 +1,33 @@
+# Configurações Apache para o projeto
+
+# Habilitar rewrite engine
+RewriteEngine On
+
+# Permitir uploads maiores
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# Proteger diretórios sensíveis
+<FilesMatch "\.(py|log|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Permitir acesso apenas aos arquivos PHP necessários
+<DirectoryMatch "^/.*/uploads/">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>
+
+<DirectoryMatch "^/.*/status/">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>
+
+<DirectoryMatch "^/.*/results/">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>
+

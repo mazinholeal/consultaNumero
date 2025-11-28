@@ -1,0 +1,35 @@
+# Arquivos de upload
+uploads/*
+!uploads/.gitkeep
+
+# Resultados
+results/*
+!results/.gitkeep
+
+# Status e checkpoints
+status/*
+!status/.gitkeep
+
+# Arquivos temporários
+*.tmp
+*.log
+*.swp
+*~
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos de erro do PHP
+php_errors.log
+
+# Arquivos de teste
+test_*.txt
+test_*.csv
+
