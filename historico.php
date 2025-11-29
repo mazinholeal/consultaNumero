@@ -1,34 +1,6 @@
 <?php
-// Verificar se o módulo SQLite está instalado
+// Se SQLite não estiver disponível, usar versão fallback que funciona sem SQLite
 if (!extension_loaded('pdo_sqlite')) {
-    die('
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <title>Erro - Módulo SQLite não instalado</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-            .error { background: #fee; border: 2px solid #fcc; padding: 20px; border-radius: 5px; }
-            code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; }
-        </style>
-    </head>
-    <body>
-        <div class="error">
-            <h1>❌ Módulo PHP SQLite não está instalado</h1>
-            <p>O módulo <code>php-sqlite3</code> é necessário para o histórico funcionar.</p>
-            <p><strong>Para instalar, execute no servidor:</strong></p>
-            <pre>sudo apt-get install -y php-sqlite3\nsudo systemctl restart apache2</pre>
-            <p><a href="index.php">← Voltar para Início</a></p>
-        </div>
-    </body>
-    </html>
-    ');
-}
-
-// Se SQLite não estiver disponível, usar versão fallback
-if (!extension_loaded('pdo_sqlite')) {
-    // Redirecionar para versão fallback que funciona sem SQLite
     require_once __DIR__ . '/historico_fallback.php';
     exit;
 }
