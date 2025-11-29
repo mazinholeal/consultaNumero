@@ -26,7 +26,7 @@ if (!empty($operadora)) {
         $operadoraNormalizada = '';
         if (stripos($operadoraResult, 'TIM') !== false) {
             $operadoraNormalizada = 'TIM';
-        } elseif (stripos($operadoraResult, 'VIVO') !== false) {
+        } elseif (stripos($operadoraResult, 'VIVO') !== false || stripos($operadoraResult, 'TELEFONICA') !== false || stripos($operadoraResult, 'TELEFÔNICA') !== false) {
             $operadoraNormalizada = 'VIVO';
         } elseif (stripos($operadoraResult, 'CLARO') !== false) {
             $operadoraNormalizada = 'CLARO';

@@ -343,7 +343,7 @@ $paginatedResults = array_slice($results, $offset, $perPage);
                     
                     if (stripos($operadora, 'TIM') !== false) {
                         $statsOperadoras['TIM']++;
-                    } elseif (stripos($operadora, 'VIVO') !== false) {
+                    } elseif (stripos($operadora, 'VIVO') !== false || stripos($operadora, 'TELEFONICA') !== false || stripos($operadora, 'TELEFÔNICA') !== false) {
                         $statsOperadoras['VIVO']++;
                     } elseif (stripos($operadora, 'CLARO') !== false) {
                         $statsOperadoras['CLARO']++;
@@ -369,7 +369,7 @@ $paginatedResults = array_slice($results, $offset, $perPage);
                         
                         <?php if ($statsOperadoras['VIVO'] > 0): ?>
                             <div style="background: #fff5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #E30613;">
-                                <h4 style="margin: 0 0 10px 0; color: #E30613;">📱 VIVO</h4>
+                                <h4 style="margin: 0 0 10px 0; color: #E30613;">📱 VIVO / TELEFÔNICA</h4>
                                 <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['VIVO']; ?> resultado(s)</p>
                                 <div style="display: flex; gap: 5px;">
                                     <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=VIVO" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
