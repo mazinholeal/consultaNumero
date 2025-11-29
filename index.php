@@ -584,7 +584,7 @@
                         clearInterval(interval);
                         progressFill.style.width = '100%';
                         progressFill.textContent = '100%';
-                        progressFill.className = 'progress-fill h-full w-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-green-500 to-green-600';
+                        progressFill.className = 'progress-fill h-full w-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-green-600'; // Verde para completo
                         statusText.textContent = 'Concluído!';
                         showMessage(`<i class="fas fa-check-circle mr-2"></i>Processamento concluído! ${status.total} números processados. <a href="results.php?job_id=${jobId}" class="text-[#004C97] font-bold hover:underline ml-2"><i class="fas fa-external-link-alt mr-1"></i>Ver resultados</a>`, 'success');
                         submitBtn.disabled = false;
@@ -593,7 +593,7 @@
                         fileInfo.classList.add('hidden');
                     } else if (status.status === 'error') {
                         clearInterval(interval);
-                        progressFill.className = 'progress-fill h-full w-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-red-600 to-red-700';
+                        progressFill.className = 'progress-fill h-full w-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-[#E30613]'; // Vermelho TIM
                         showMessage(`<i class="fas fa-exclamation-circle mr-2"></i>Erro no processamento: ${status.message}`, 'error');
                         submitBtn.disabled = false;
                         progressContainer.classList.remove('hidden');
