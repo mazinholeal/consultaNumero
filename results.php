@@ -368,8 +368,8 @@ $paginatedResults = array_slice($results, $offset, $perPage);
                         <?php endif; ?>
                         
                         <?php if ($statsOperadoras['VIVO'] > 0): ?>
-                            <div style="background: #fff5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #E30613;">
-                                <h4 style="margin: 0 0 10px 0; color: #E30613;">📱 VIVO / TELEFÔNICA</h4>
+                            <div style="background: #f3e8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #9333ea;">
+                                <h4 style="margin: 0 0 10px 0; color: #9333ea;">📱 VIVO / TELEFÔNICA</h4>
                                 <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['VIVO']; ?> resultado(s)</p>
                                 <div style="display: flex; gap: 5px;">
                                     <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=VIVO" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
@@ -379,8 +379,8 @@ $paginatedResults = array_slice($results, $offset, $perPage);
                         <?php endif; ?>
                         
                         <?php if ($statsOperadoras['CLARO'] > 0): ?>
-                            <div style="background: #fffef0; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD100;">
-                                <h4 style="margin: 0 0 10px 0; color: #856404;">📱 CLARO</h4>
+                            <div style="background: #fff5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #E30613;">
+                                <h4 style="margin: 0 0 10px 0; color: #E30613;">📱 CLARO</h4>
                                 <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['CLARO']; ?> resultado(s)</p>
                                 <div style="display: flex; gap: 5px;">
                                     <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=CLARO" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
