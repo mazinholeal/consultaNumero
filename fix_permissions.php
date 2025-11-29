@@ -131,8 +131,33 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
         
-        echo "<h2>7. Testando escrita no banco...</h2>";
+        echo "<h2>7. Garantindo permissões finais...</h2>";
+        // Garantir que o diretório está gravável
+        if (is_dir($dbDir)) {
+            @chmod($dbDir, 0777);
+            if (is_writable($dbDir)) {
+                echo "<p class='success'>✅ Diretório está gravável</p>";
+            } else {
+                echo "<p class='error'>❌ Diretório ainda não está gravável</p>";
+            }
+        }
+        
+        // Se o arquivo existe, garantir permissões
+        if (file_exists($dbFile)) {
+            @chmod($dbFile, 0666);
+            if (is_writable($dbFile)) {
+                echo "<p class='success'>✅ Arquivo está gravável</p>";
+            } else {
+                // Última tentativa: deletar e deixar recriar
+                echo "<p class='warning'>⚠️ Arquivo não está gravável. Removendo para recriar...</p>";
+                @unlink($dbFile);
+                echo "<p class='info'>ℹ️ Arquivo removido. Será recriado automaticamente.</p>";
+            }
+        }
+        
+        echo "<h2>8. Testando escrita no banco...</h2>";
         try {
+            // Recarregar a classe para garantir que o banco seja recriado se necessário
             require_once __DIR__ . '/database.php';
             $db = new ConsultaDatabase();
             
@@ -145,8 +170,34 @@ header('Content-Type: text/html; charset=utf-8');
                 // Deletar o teste
                 $db->deleteConsulta($testJobId);
                 echo "<p class='success'>✅ Banco de dados está funcionando corretamente</p>";
+                
+                // Verificar permissões finais
+                if (file_exists($dbFile)) {
+                    $finalPerms = substr(sprintf('%o', fileperms($dbFile)), -4);
+                    echo "<p>Permissões finais do arquivo: <strong>$finalPerms</strong></p>";
+                }
             } catch (Exception $e) {
-                echo "<p class='error'>❌ Erro ao escrever: " . htmlspecialchars($e->getMessage()) . "</p>";
+                $errorMsg = $e->getMessage();
+                echo "<p class='error'>❌ Erro ao escrever: " . htmlspecialchars($errorMsg) . "</p>";
+                
+                // Se ainda der erro, tentar deletar o banco e recriar
+                if (strpos($errorMsg, 'readonly') !== false || strpos($errorMsg, 'read-only') !== false) {
+                    echo "<p class='warning'>⚠️ Tentando remover banco e recriar...</p>";
+                    @unlink($dbFile);
+                    @unlink($dbDir . '/consultas.db-journal');
+                    
+                    try {
+                        $db = new ConsultaDatabase();
+                        $testJobId2 = 'test2_' . time();
+                        $db->createConsulta($testJobId2, 'teste2.txt', null);
+                        $db->deleteConsulta($testJobId2);
+                        echo "<p class='success'>✅ Banco recriado e funcionando!</p>";
+                    } catch (Exception $e2) {
+                        echo "<p class='error'>❌ Erro persistente: " . htmlspecialchars($e2->getMessage()) . "</p>";
+                        echo "<p class='info'>Execute manualmente no servidor:</p>";
+                        echo "<pre>cd /var/www/html/consultanumero\nrm -f database/consultas.db*\nchmod 777 database\nchown -R www-data:www-data database</pre>";
+                    }
+                }
             }
         } catch (Exception $e) {
             echo "<p class='error'>❌ Erro ao conectar: " . htmlspecialchars($e->getMessage()) . "</p>";
