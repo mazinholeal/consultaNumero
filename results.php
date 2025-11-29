@@ -319,11 +319,90 @@ $paginatedResults = array_slice($results, $offset, $perPage);
         
         <div class="actions">
             <a href="index.php" class="btn btn-secondary">Nova Consulta</a>
-            <?php if (file_exists($resultsFile)): ?>
-                <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json" class="btn">Download JSON</a>
-                <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=csv" class="btn">Download CSV</a>
-            <?php endif; ?>
         </div>
+        
+        <?php if (file_exists($resultsFile) && !empty($results)): ?>
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="margin-bottom: 15px;">
+                    <h3 style="margin-bottom: 10px; color: #333;">📥 Download Completo</h3>
+                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json" class="btn">📄 Download JSON (Todos)</a>
+                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=csv" class="btn">📊 Download CSV (Todos)</a>
+                </div>
+                
+                <?php
+                // Contar resultados por operadora
+                $statsOperadoras = [
+                    'TIM' => 0,
+                    'VIVO' => 0,
+                    'CLARO' => 0,
+                    'OUTROS' => 0
+                ];
+                
+                foreach ($results as $result) {
+                    $operadora = strtoupper(trim($result['operadora'] ?? ''));
+                    
+                    if (stripos($operadora, 'TIM') !== false) {
+                        $statsOperadoras['TIM']++;
+                    } elseif (stripos($operadora, 'VIVO') !== false) {
+                        $statsOperadoras['VIVO']++;
+                    } elseif (stripos($operadora, 'CLARO') !== false) {
+                        $statsOperadoras['CLARO']++;
+                    } else {
+                        $statsOperadoras['OUTROS']++;
+                    }
+                }
+                ?>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
+                    <h3 style="margin-bottom: 15px; color: #333;">📥 Download por Operadora</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <?php if ($statsOperadoras['TIM'] > 0): ?>
+                            <div style="background: #f0f7ff; padding: 15px; border-radius: 8px; border-left: 4px solid #004C97;">
+                                <h4 style="margin: 0 0 10px 0; color: #004C97;">📱 TIM</h4>
+                                <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['TIM']; ?> resultado(s)</p>
+                                <div style="display: flex; gap: 5px;">
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=TIM" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=csv&operadora=TIM" class="btn" style="font-size: 12px; padding: 6px 12px;">CSV</a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($statsOperadoras['VIVO'] > 0): ?>
+                            <div style="background: #fff5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #E30613;">
+                                <h4 style="margin: 0 0 10px 0; color: #E30613;">📱 VIVO</h4>
+                                <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['VIVO']; ?> resultado(s)</p>
+                                <div style="display: flex; gap: 5px;">
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=VIVO" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=csv&operadora=VIVO" class="btn" style="font-size: 12px; padding: 6px 12px;">CSV</a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($statsOperadoras['CLARO'] > 0): ?>
+                            <div style="background: #fffef0; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD100;">
+                                <h4 style="margin: 0 0 10px 0; color: #856404;">📱 CLARO</h4>
+                                <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['CLARO']; ?> resultado(s)</p>
+                                <div style="display: flex; gap: 5px;">
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=CLARO" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=csv&operadora=CLARO" class="btn" style="font-size: 12px; padding: 6px 12px;">CSV</a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($statsOperadoras['OUTROS'] > 0): ?>
+                            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #666;">
+                                <h4 style="margin: 0 0 10px 0; color: #666;">📱 OUTROS</h4>
+                                <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;"><?php echo $statsOperadoras['OUTROS']; ?> resultado(s)</p>
+                                <div style="display: flex; gap: 5px;">
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=json&operadora=OUTROS" class="btn" style="font-size: 12px; padding: 6px 12px;">JSON</a>
+                                    <a href="download.php?job_id=<?php echo urlencode($jobId); ?>&format=csv&operadora=OUTROS" class="btn" style="font-size: 12px; padding: 6px 12px;">CSV</a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
         
         <?php if (!empty($results)): ?>
             <div class="search-box">
