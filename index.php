@@ -272,7 +272,7 @@
                         </p>
                     </div>
                     <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                        <div class="progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold" id="progressFill">0%</div>
+                        <div class="progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-[#E30613]" id="progressFill">0%</div>
                     </div>
                 </div>
                 
