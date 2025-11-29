@@ -141,6 +141,28 @@ chmod 777 uploads results status database
     echo -e "${YELLOW}[8/8] Testando script Python...${NC}"
     python3 -m py_compile process_batch.py && echo -e "${GREEN}Script Python OK${NC}" || echo -e "${RED}Erro no script Python${NC}"
 
+    # Verificar se php-sqlite3 está instalado
+    echo ""
+    echo -e "${YELLOW}Verificando módulo PHP SQLite...${NC}"
+    if php -m | grep -q sqlite; then
+        echo -e "${GREEN}Módulo SQLite OK${NC}"
+    else
+        echo -e "${YELLOW}Instalando php-sqlite3...${NC}"
+        apt-get install -y php-sqlite3
+        systemctl restart apache2
+    fi
+
+    # Migrar resultados antigos para o banco SQLite
+    echo ""
+    echo -e "${YELLOW}Migrando resultados antigos para o banco de dados...${NC}"
+    if [ -f "$INSTALL_DIR/migrate_old_results.php" ]; then
+        php "$INSTALL_DIR/migrate_old_results.php" 2>&1 | head -20
+        echo ""
+        echo -e "${GREEN}Migração concluída!${NC}"
+    else
+        echo -e "${YELLOW}Aviso: Script de migração não encontrado${NC}"
+    fi
+
     # Configurar Apache
     echo ""
     echo -e "${YELLOW}Configurando Apache...${NC}"
@@ -165,10 +187,12 @@ chmod 777 uploads results status database
     echo "  - Diretório: $INSTALL_DIR"
     echo "  - URL: http://$(hostname -I | awk '{print $1}')/consultanumero/"
     echo "  - Permissões configuradas"
+    echo "  - Banco de dados SQLite configurado"
     echo ""
     echo "Próximos passos:"
     echo "  1. Acesse: http://$(hostname -I | awk '{print $1}')/consultanumero/"
-    echo "  2. Teste o upload de um arquivo"
-    echo "  3. Verifique os logs em caso de erro: tail -f /var/log/apache2/error.log"
+    echo "  2. Verifique o histórico: http://$(hostname -I | awk '{print $1}')/consultanumero/historico.php"
+    echo "  3. Teste o upload de um arquivo"
+    echo "  4. Verifique os logs em caso de erro: tail -f /var/log/apache2/error.log"
     echo ""
 
