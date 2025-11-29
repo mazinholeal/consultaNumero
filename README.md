@@ -24,13 +24,26 @@ Sistema para consulta de números telefônicos em lote via API, com interface PH
 
 ### Instalação Automática
 
+O script de instalação faz tudo automaticamente, incluindo o clone do repositório:
+
 ```bash
 cd /var/www/html
-git clone https://github.com/mazinholeal/consultaNumero.git
-cd consultanumero
+wget https://raw.githubusercontent.com/mazinholeal/consultaNumero/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
+
+**OU** se já tiver o script localmente:
+
+```bash
+sudo ./install.sh
+```
+
+O script automaticamente:
+- ✅ Clona o repositório do GitHub (ou atualiza se já existir)
+- ✅ Instala todas as dependências
+- ✅ Configura permissões
+- ✅ Configura Apache
 
 ### Instalação Manual
 
