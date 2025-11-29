@@ -231,7 +231,7 @@
                                 Selecionar Arquivo
                             </button>
                         </div>
-                        <input type="file" id="fileInput" name="file" accept=".csv,.txt" required class="hidden">
+                        <input type="file" id="fileInput" name="file" accept=".csv,.txt" class="hidden">
                         <div class="file-info mt-4 p-3 bg-white rounded-lg shadow-sm hidden border-l-4 border-[#004C97]" id="fileInfo">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -442,13 +442,20 @@
             }
         });
         
+        // Flag para evitar múltiplos cliques
+        let isSelectingFile = false;
+        
         // Botão de seleção de arquivo
         const selectFileBtn = document.getElementById('selectFileBtn');
         if (selectFileBtn) {
             selectFileBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Evita propagação para uploadArea
-                fileInput.click();
+                e.stopPropagation();
+                if (!isSelectingFile) {
+                    isSelectingFile = true;
+                    fileInput.click();
+                    setTimeout(() => { isSelectingFile = false; }, 300);
+                }
             });
         }
         
@@ -458,7 +465,11 @@
             if (e.target.closest('#selectFileBtn') || e.target.closest('#fileInfo')) {
                 return;
             }
-            fileInput.click();
+            if (!isSelectingFile) {
+                isSelectingFile = true;
+                fileInput.click();
+                setTimeout(() => { isSelectingFile = false; }, 300);
+            }
         });
         
         fileInput.addEventListener('change', function(e) {
@@ -468,7 +479,6 @@
         
         function handleFileSelect() {
             const file = fileInput.files[0];
-            console.log('Arquivo selecionado:', file ? file.name : 'nenhum');
             
             if (file) {
                 const maxSize = 10 * 1024 * 1024; // 10MB
@@ -483,6 +493,9 @@
                 fileSize.textContent = formatFileSize(file.size);
                 fileInfo.classList.remove('hidden');
                 
+                // Habilitar botão de submit
+                submitBtn.disabled = false;
+                
                 // Focar no botão de submit para facilitar
                 setTimeout(() => {
                     submitBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -490,8 +503,12 @@
             } else {
                 // Se não há arquivo, esconder info
                 fileInfo.classList.add('hidden');
+                submitBtn.disabled = true;
             }
         }
+        
+        // Inicializar estado do botão
+        submitBtn.disabled = true;
         
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -503,10 +520,17 @@
         
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             
             const file = fileInput.files[0];
             if (!file) {
                 showMessage('<i class="fas fa-exclamation-circle mr-2"></i>Por favor, selecione um arquivo', 'error');
+                fileInfo.classList.add('hidden');
+                return;
+            }
+            
+            // Prevenir múltiplos envios
+            if (submitBtn.disabled) {
                 return;
             }
             
@@ -516,6 +540,8 @@
             submitBtn.disabled = true;
             progressContainer.classList.remove('hidden');
             statusMessage.classList.add('hidden');
+            
+            // Não limpar o arquivo ainda - manter visível durante processamento
             
             try {
                 const response = await fetch('upload.php', {
