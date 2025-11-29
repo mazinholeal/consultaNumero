@@ -73,27 +73,68 @@ header('Content-Type: text/html; charset=utf-8');
         
         echo "<h2>3. Verificando arquivos de status antigos...</h2>";
         $statusDir = __DIR__ . '/status/';
+        $resultsDir = __DIR__ . '/results/';
+        $uploadsDir = __DIR__ . '/uploads/';
+        
         $statusFiles = [];
+        $resultsFiles = [];
+        $uploadFiles = [];
+        
         if (is_dir($statusDir)) {
             $files = glob($statusDir . '*.json');
             $statusFiles = array_filter($files, function($file) {
                 return !preg_match('/_(checkpoint|errors)\.json$/', $file);
             });
-            echo "<p>Encontrados: <strong>" . count($statusFiles) . "</strong> arquivos de status</p>";
-            
-            if (count($statusFiles) > 0) {
-                echo "<ul>";
-                foreach (array_slice($statusFiles, 0, 5) as $file) {
-                    $data = json_decode(file_get_contents($file), true);
-                    $jobId = $data['job_id'] ?? basename($file);
-                    echo "<li>" . htmlspecialchars($jobId) . " - " . ($data['file_name'] ?? 'N/A') . "</li>";
-                }
-                if (count($statusFiles) > 5) {
-                    echo "<li>... e mais " . (count($statusFiles) - 5) . " arquivos</li>";
-                }
-                echo "</ul>";
+        }
+        
+        if (is_dir($resultsDir)) {
+            $resultsFiles = glob($resultsDir . '*.json');
+            $resultsFiles = array_filter($resultsFiles, function($file) {
+                return basename($file) !== '.gitkeep';
+            });
+        }
+        
+        if (is_dir($uploadsDir)) {
+            $uploadFiles = glob($uploadsDir . '*');
+            $uploadFiles = array_filter($uploadFiles, function($file) {
+                return is_file($file) && basename($file) !== '.gitkeep';
+            });
+        }
+        
+        echo "<p><strong>Arquivos de Status:</strong> " . count($statusFiles) . "</p>";
+        echo "<p><strong>Arquivos de Resultados:</strong> " . count($resultsFiles) . "</p>";
+        echo "<p><strong>Arquivos de Upload:</strong> " . count($uploadFiles) . "</p>";
+        
+        if (count($statusFiles) > 0) {
+            echo "<h3>Arquivos de Status encontrados:</h3><ul>";
+            foreach (array_slice($statusFiles, 0, 10) as $file) {
+                $data = json_decode(file_get_contents($file), true);
+                $jobId = $data['job_id'] ?? basename($file);
+                $fileName = $data['file_name'] ?? 'N/A';
+                $status = $data['status'] ?? 'unknown';
+                echo "<li><strong>" . htmlspecialchars($jobId) . "</strong> - " . htmlspecialchars($fileName) . " (" . htmlspecialchars($status) . ")</li>";
             }
-        } else {
+            if (count($statusFiles) > 10) {
+                echo "<li>... e mais " . (count($statusFiles) - 10) . " arquivos</li>";
+            }
+            echo "</ul>";
+        }
+        
+        if (count($resultsFiles) > 0 && count($statusFiles) == 0) {
+            echo "<p class='warning'>⚠️ Há arquivos de resultados mas nenhum arquivo de status correspondente!</p>";
+            echo "<p>Isso pode significar que os arquivos de status foram deletados ou estão em outro local.</p>";
+            echo "<h3>Arquivos de Resultados encontrados:</h3><ul>";
+            foreach (array_slice($resultsFiles, 0, 5) as $file) {
+                $jobId = basename($file, '.json');
+                echo "<li>" . htmlspecialchars($jobId) . "</li>";
+            }
+            if (count($resultsFiles) > 5) {
+                echo "<li>... e mais " . (count($resultsFiles) - 5) . " arquivos</li>";
+            }
+            echo "</ul>";
+        }
+        
+        if (!is_dir($statusDir)) {
             echo "<p class='error'>❌ Diretório de status não encontrado</p>";
         }
         
