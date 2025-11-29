@@ -58,8 +58,7 @@ else
         echo "Usando SSH para clonar (sem senha)..."
         git clone git@github.com:mazinholeal/consultaNumero.git "$INSTALL_DIR"
     else
-        echo "SSH não configurado. Usando HTTPS (pode pedir credenciais)..."
-        echo "Para evitar senha, configure SSH primeiro ou torne o repositório público"
+        echo "Usando HTTPS para clonar (repositório público - não pede senha)..."
         git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR"
     fi
 fi
