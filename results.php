@@ -24,6 +24,20 @@ if (file_exists($resultsFile)) {
 if (file_exists($errorsFile)) {
     $errors = json_decode(file_get_contents($errorsFile), true);
 }
+
+// Paginação
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;
+if (!in_array($perPage, [10, 25, 50])) {
+    $perPage = 25;
+}
+
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$totalResults = count($results);
+$totalPages = $totalResults > 0 ? ceil($totalResults / $perPage) : 1;
+$currentPage = min($currentPage, $totalPages);
+
+$offset = ($currentPage - 1) * $perPage;
+$paginatedResults = array_slice($results, $offset, $perPage);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -160,6 +174,92 @@ if (file_exists($errorsFile)) {
             border-radius: 5px;
             font-size: 14px;
         }
+        
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .pagination-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .pagination-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .pagination-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .page-btn {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: #764ba2;
+        }
+        
+        .page-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .page-numbers {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .page-number {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+        }
+        
+        .page-number:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .page-number.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -230,6 +330,21 @@ if (file_exists($errorsFile)) {
                 <input type="text" id="searchInput" placeholder="Buscar por número, operadora, localidade...">
             </div>
             
+            <!-- Controles de Paginação Superior -->
+            <div class="pagination-controls">
+                <div class="pagination-info">
+                    Mostrando <?php echo $offset + 1; ?> - <?php echo min($offset + $perPage, $totalResults); ?> de <?php echo number_format($totalResults); ?> resultados
+                </div>
+                <div class="pagination-buttons">
+                    <label for="perPageSelect" style="margin-right: 10px; color: #666;">Itens por página:</label>
+                    <select id="perPageSelect" class="pagination-select" onchange="changePerPage(this.value)">
+                        <option value="10" <?php echo $perPage == 10 ? 'selected' : ''; ?>>10</option>
+                        <option value="25" <?php echo $perPage == 25 ? 'selected' : ''; ?>>25</option>
+                        <option value="50" <?php echo $perPage == 50 ? 'selected' : ''; ?>>50</option>
+                    </select>
+                </div>
+            </div>
+            
             <table id="resultsTable">
                 <thead>
                     <tr>
@@ -245,7 +360,7 @@ if (file_exists($errorsFile)) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($results as $result): ?>
+                    <?php foreach ($paginatedResults as $result): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($result['numero'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($result['TipoPrefixo'] ?? ''); ?></td>
@@ -260,6 +375,46 @@ if (file_exists($errorsFile)) {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            
+            <!-- Controles de Paginação Inferior -->
+            <?php if ($totalPages > 1): ?>
+                <div class="pagination-controls">
+                    <button class="page-btn" onclick="goToPage(<?php echo $currentPage - 1; ?>)" <?php echo $currentPage == 1 ? 'disabled' : ''; ?>>
+                        ← Anterior
+                    </button>
+                    
+                    <div class="page-numbers">
+                        <?php
+                        $startPage = max(1, $currentPage - 2);
+                        $endPage = min($totalPages, $currentPage + 2);
+                        
+                        if ($startPage > 1): ?>
+                            <a href="?job_id=<?php echo urlencode($jobId); ?>&page=1&per_page=<?php echo $perPage; ?>" class="page-number">1</a>
+                            <?php if ($startPage > 2): ?>
+                                <span style="padding: 8px;">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="?job_id=<?php echo urlencode($jobId); ?>&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?>" 
+                               class="page-number <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($endPage < $totalPages): ?>
+                            <?php if ($endPage < $totalPages - 1): ?>
+                                <span style="padding: 8px;">...</span>
+                            <?php endif; ?>
+                            <a href="?job_id=<?php echo urlencode($jobId); ?>&page=<?php echo $totalPages; ?>&per_page=<?php echo $perPage; ?>" class="page-number"><?php echo $totalPages; ?></a>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <button class="page-btn" onclick="goToPage(<?php echo $currentPage + 1; ?>)" <?php echo $currentPage == $totalPages ? 'disabled' : ''; ?>>
+                        Próxima →
+                    </button>
+                </div>
+            <?php endif; ?>
         <?php else: ?>
             <div class="no-results">
                 <p>Nenhum resultado disponível ainda. O processamento pode estar em andamento.</p>
@@ -282,6 +437,19 @@ if (file_exists($errorsFile)) {
                     row.style.display = text.includes(searchTerm) ? '' : 'none';
                 }
             });
+        }
+        
+        function changePerPage(value) {
+            const url = new URL(window.location);
+            url.searchParams.set('per_page', value);
+            url.searchParams.set('page', '1'); // Reset para primeira página
+            window.location.href = url.toString();
+        }
+        
+        function goToPage(page) {
+            const url = new URL(window.location);
+            url.searchParams.set('page', page);
+            window.location.href = url.toString();
         }
     </script>
 </body>
