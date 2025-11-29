@@ -7,7 +7,7 @@
 // Se SQLite não estiver disponível, usar versão fallback
 if (!extension_loaded('pdo_sqlite')) {
     require_once __DIR__ . '/database_fallback.php';
-    return;
+    return; // Retorna antes de declarar a classe SQLite
 }
 
 class ConsultaDatabase {
