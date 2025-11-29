@@ -74,9 +74,19 @@ if [ -d "$INSTALL_DIR" ]; then
         
         git pull origin main 2>/dev/null || {
             echo -e "${YELLOW}Aviso: Não foi possível atualizar. Tentando resetar...${NC}"
+            # Fazer backup dos dados antes de resetar
+            if [ -f "$INSTALL_DIR/database/consultas.json" ] && [ -s "$INSTALL_DIR/database/consultas.json" ]; then
+                echo "Fazendo backup do histórico antes de resetar..."
+                cp "$INSTALL_DIR/database/consultas.json" "$INSTALL_DIR/database/consultas.json.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+            fi
             git reset --hard origin/main 2>/dev/null || {
                 echo -e "${YELLOW}Aviso: Não foi possível resetar. Continuando com código existente...${NC}"
             }
+            # Tentar recuperar histórico após reset
+            if [ -f "$INSTALL_DIR/recover_history.php" ]; then
+                echo "Tentando recuperar histórico..."
+                php "$INSTALL_DIR/recover_history.php" 2>/dev/null || true
+            fi
         }
         echo -e "${GREEN}Código atualizado!${NC}"
     else
