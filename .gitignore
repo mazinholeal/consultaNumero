@@ -33,3 +33,7 @@ php_errors.log
 test_*.txt
 test_*.csv
 
+# Banco de dados SQLite
+database/*.db
+database/*.db-journal
+
