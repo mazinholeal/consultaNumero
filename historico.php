@@ -149,10 +149,10 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
                                         <div class="w-full bg-gray-200 rounded-full h-2">
                                             <div class="h-2 rounded-full transition-all <?php 
                                                 $progress = $consulta['progress'] ?? 0;
-                                                if ($progress < 25) echo 'bg-red-500';
-                                                elseif ($progress < 50) echo 'bg-orange-500';
-                                                elseif ($progress < 75) echo 'bg-yellow-500';
-                                                else echo 'bg-green-500';
+                                                if ($progress < 25) echo 'bg-[#E30613]'; // Vermelho TIM
+                                                elseif ($progress < 50) echo 'bg-[#FFD100]'; // Amarelo TIM
+                                                elseif ($progress < 75) echo 'bg-[#004C97]'; // Azul TIM
+                                                else echo 'bg-green-600'; // Verde para completo
                                             ?>" style="width: <?php echo $progress; ?>%"></div>
                                         </div>
                                         <div class="text-xs text-gray-600 mt-1"><?php echo $progress; ?>%</div>

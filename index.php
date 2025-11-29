@@ -603,15 +603,15 @@
                         progressFill.textContent = progress + '%';
                         statusText.textContent = `Processando... ${status.processed || 0} de ${status.total || 0} números`;
                         
-                        // Mudar cor conforme progresso
+                        // Mudar cor conforme progresso usando cores TIM
                         if (progress < 25) {
-                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-red-500 to-orange-500';
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-[#E30613]'; // Vermelho TIM
                         } else if (progress < 50) {
-                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-orange-500 to-yellow-500';
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-[#FFD100]'; // Amarelo TIM
                         } else if (progress < 75) {
-                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-yellow-500 to-blue-500';
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-[#004C97]'; // Azul TIM
                         } else {
-                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-blue-500 to-green-500';
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-green-600'; // Verde para completo
                         }
                     }
                 } catch (error) {
