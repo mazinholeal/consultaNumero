@@ -88,11 +88,57 @@ header('Content-Type: text/html; charset=utf-8');
             echo "<p>Tamanho: " . number_format(filesize($dbFile)) . " bytes</p>";
             
             echo "<h2>4. Corrigindo permissões do arquivo...</h2>";
+            
+            // Tentar múltiplas abordagens para corrigir permissões
+            $fixed = false;
+            
+            // Tentativa 1: chmod direto
             if (@chmod($dbFile, 0666)) {
-                echo "<p class='success'>✅ Permissões do arquivo corrigidas para 666</p>";
+                echo "<p class='success'>✅ Permissões do arquivo corrigidas para 666 (método 1)</p>";
+                $fixed = true;
             } else {
-                echo "<p class='error'>❌ Erro ao alterar permissões do arquivo</p>";
-                echo "<p class='info'>Execute no servidor: <code>chmod 666 database/consultas.db</code></p>";
+                // Tentativa 2: Usar shell_exec com chmod
+                $output = @shell_exec("chmod 666 " . escapeshellarg($dbFile) . " 2>&1");
+                if ($output === null || trim($output) === '') {
+                    $newPerms = substr(sprintf('%o', fileperms($dbFile)), -4);
+                    if ($newPerms == '0666' || $newPerms == '0664' || is_writable($dbFile)) {
+                        echo "<p class='success'>✅ Permissões do arquivo corrigidas para 666 (método 2)</p>";
+                        $fixed = true;
+                    }
+                }
+            }
+            
+            // Tentativa 3: Criar script shell temporário e executar
+            if (!$fixed) {
+                $fixScript = $dbDir . '/fix_perms.sh';
+                $scriptContent = "#!/bin/bash\nchmod 666 " . escapeshellarg($dbFile) . "\nchmod 777 " . escapeshellarg($dbDir) . "\n";
+                if (@file_put_contents($fixScript, $scriptContent)) {
+                    @chmod($fixScript, 0755);
+                    @shell_exec("bash " . escapeshellarg($fixScript) . " 2>&1");
+                    @unlink($fixScript);
+                    
+                    $newPerms = substr(sprintf('%o', fileperms($dbFile)), -4);
+                    if ($newPerms == '0666' || $newPerms == '0664' || is_writable($dbFile)) {
+                        echo "<p class='success'>✅ Permissões do arquivo corrigidas para 666 (método 3)</p>";
+                        $fixed = true;
+                    }
+                }
+            }
+            
+            if (!$fixed) {
+                echo "<p class='warning'>⚠️ Não foi possível alterar permissões via PHP</p>";
+                echo "<p class='info'>Tentando deletar e recriar o banco...</p>";
+                
+                // Tentativa 4: Deletar e recriar o banco
+                try {
+                    @unlink($dbFile);
+                    @unlink($dbDir . '/consultas.db-journal');
+                    echo "<p class='success'>✅ Arquivo antigo removido</p>";
+                    echo "<p class='info'>O banco será recriado automaticamente na próxima tentativa</p>";
+                } catch (Exception $e) {
+                    echo "<p class='error'>❌ Não foi possível remover o arquivo</p>";
+                    echo "<p class='info'>Execute manualmente no servidor: <code>chmod 666 database/consultas.db</code></p>";
+                }
             }
         } else {
             echo "<p class='info'>ℹ️ Arquivo do banco ainda não existe (será criado na primeira consulta)</p>";
