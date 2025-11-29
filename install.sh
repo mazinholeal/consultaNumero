@@ -126,7 +126,7 @@ chmod 777 uploads results status database
     echo -e "${YELLOW}[6/8] Configurando permissões...${NC}"
     chown -R www-data:www-data "$INSTALL_DIR"
     chmod -R 755 "$INSTALL_DIR"
-    chmod 777 uploads results status
+    chmod 777 uploads results status database
     chmod +x process_batch.py
 
     # Verificar Python
