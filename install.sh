@@ -41,16 +41,43 @@
     a2enmod headers
 
 # Clonar ou atualizar repositório
-echo -e "${YELLOW}[4/8] Clonando repositório do GitHub...${NC}"
+echo -e "${YELLOW}[4/8] Clonando/Atualizando repositório do GitHub...${NC}"
 if [ -d "$INSTALL_DIR" ]; then
-    echo "Diretório já existe. Atualizando..."
+    echo "Diretório já existe. Atualizando código..."
     cd "$INSTALL_DIR"
-    # Verificar se remote está configurado
-    if git remote get-url origin 2>/dev/null | grep -q "https://"; then
-        echo "Convertendo remote de HTTPS para SSH..."
-        git remote set-url origin git@github.com:mazinholeal/consultaNumero.git
+    
+    # Verificar se é um repositório git válido
+    if [ -d ".git" ]; then
+        # Fazer backup de mudanças locais se houver
+        if ! git diff --quiet || ! git diff --cached --quiet; then
+            echo -e "${YELLOW}Aviso: Há mudanças locais. Fazendo stash...${NC}"
+            git stash save "Backup antes de atualizar - $(date '+%Y-%m-%d %H:%M:%S')"
+        fi
+        
+        # Verificar se remote está configurado
+        if git remote get-url origin 2>/dev/null | grep -q "https://"; then
+            echo "Convertendo remote de HTTPS para SSH (se SSH estiver configurado)..."
+            # Tentar SSH primeiro
+            if ssh -o BatchMode=yes -o ConnectTimeout=5 git@github.com 2>&1 | grep -q "successfully authenticated"; then
+                git remote set-url origin git@github.com:mazinholeal/consultaNumero.git
+            fi
+        fi
+        
+        # Atualizar código
+        echo "Buscando atualizações do GitHub..."
+        git fetch origin main
+        git pull origin main || {
+            echo -e "${RED}Erro ao atualizar. Tentando resetar...${NC}"
+            git reset --hard origin/main
+        }
+        echo -e "${GREEN}Código atualizado com sucesso!${NC}"
+    else
+        echo -e "${RED}Diretório existe mas não é um repositório git válido!${NC}"
+        echo "Fazendo backup e clonando novamente..."
+        mv "$INSTALL_DIR" "${INSTALL_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$(dirname $INSTALL_DIR)"
+        git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR"
     fi
-    git pull origin main || echo "Aviso: Não foi possível atualizar via git"
 else
     mkdir -p "$(dirname $INSTALL_DIR)"
     # Tentar SSH primeiro (não pede senha se chave estiver configurada)
