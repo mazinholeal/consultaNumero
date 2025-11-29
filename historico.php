@@ -1,15 +1,9 @@
 <?php
 require_once __DIR__ . '/database.php';
 
-try {
-    $db = new ConsultaDatabase();
-    $consultas = $db->getAllConsultas(100);
-    $stats = $db->getStats();
-} catch (Exception $e) {
-    // Se falhar, usar versão fallback
-    require_once __DIR__ . '/historico_fallback.php';
-    exit;
-}
+$db = new ConsultaDatabase();
+$consultas = $db->getAllConsultas(100);
+$stats = $db->getStats();
 
 // Processar delete se solicitado
 if (isset($_GET['delete']) && !empty($_GET['delete'])) {
