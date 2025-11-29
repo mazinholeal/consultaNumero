@@ -47,11 +47,14 @@ if [ -d "$INSTALL_DIR" ]; then
     cd "$INSTALL_DIR"
     
     # Verificar se é um repositório git válido
-    if [ -d ".git" ]; then
-        # Fazer backup de mudanças locais se houver
-        if ! git diff --quiet || ! git diff --cached --quiet; then
+    if [ -d ".git" ] && git rev-parse --git-dir > /dev/null 2>&1; then
+        # Configurar safe.directory se necessário (para evitar erro de ownership)
+        git config --global --add safe.directory "$INSTALL_DIR" 2>/dev/null || true
+        
+        # Verificar se há mudanças locais (sem usar git diff que pode falhar)
+        if git status --porcelain 2>/dev/null | grep -q .; then
             echo -e "${YELLOW}Aviso: Há mudanças locais. Fazendo stash...${NC}"
-            git stash save "Backup antes de atualizar - $(date '+%Y-%m-%d %H:%M:%S')"
+            git stash save "Backup antes de atualizar - $(date '+%Y-%m-%d %H:%M:%S')" 2>/dev/null || true
         fi
         
         # Verificar se remote está configurado
@@ -59,36 +62,59 @@ if [ -d "$INSTALL_DIR" ]; then
             echo "Convertendo remote de HTTPS para SSH (se SSH estiver configurado)..."
             # Tentar SSH primeiro
             if ssh -o BatchMode=yes -o ConnectTimeout=5 git@github.com 2>&1 | grep -q "successfully authenticated"; then
-                git remote set-url origin git@github.com:mazinholeal/consultaNumero.git
+                git remote set-url origin git@github.com:mazinholeal/consultaNumero.git 2>/dev/null || true
             fi
         fi
         
         # Atualizar código
         echo "Buscando atualizações do GitHub..."
-        git fetch origin main
-        git pull origin main || {
-            echo -e "${RED}Erro ao atualizar. Tentando resetar...${NC}"
-            git reset --hard origin/main
+        git fetch origin main 2>/dev/null || {
+            echo -e "${YELLOW}Aviso: Não foi possível buscar atualizações. Continuando com código existente...${NC}"
         }
-        echo -e "${GREEN}Código atualizado com sucesso!${NC}"
+        
+        git pull origin main 2>/dev/null || {
+            echo -e "${YELLOW}Aviso: Não foi possível atualizar. Tentando resetar...${NC}"
+            git reset --hard origin/main 2>/dev/null || {
+                echo -e "${YELLOW}Aviso: Não foi possível resetar. Continuando com código existente...${NC}"
+            }
+        }
+        echo -e "${GREEN}Código atualizado!${NC}"
     else
-        echo -e "${RED}Diretório existe mas não é um repositório git válido!${NC}"
+        echo -e "${YELLOW}Diretório existe mas não é um repositório git válido!${NC}"
         echo "Fazendo backup e clonando novamente..."
-        mv "$INSTALL_DIR" "${INSTALL_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
+        mv "$INSTALL_DIR" "${INSTALL_DIR}.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
         mkdir -p "$(dirname $INSTALL_DIR)"
-        git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR"
+        git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR" || {
+            echo -e "${RED}Erro ao clonar repositório. Continuando com instalação...${NC}"
+            mkdir -p "$INSTALL_DIR"
+        }
     fi
 else
     mkdir -p "$(dirname $INSTALL_DIR)"
     # Tentar SSH primeiro (não pede senha se chave estiver configurada)
     if ssh -o BatchMode=yes -o ConnectTimeout=5 git@github.com 2>&1 | grep -q "successfully authenticated"; then
         echo "Usando SSH para clonar (sem senha)..."
-        git clone git@github.com:mazinholeal/consultaNumero.git "$INSTALL_DIR"
+        git clone git@github.com:mazinholeal/consultaNumero.git "$INSTALL_DIR" || {
+            echo -e "${YELLOW}Falha ao clonar via SSH. Tentando HTTPS...${NC}"
+            git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR" || {
+                echo -e "${RED}Erro ao clonar repositório. Continuando com instalação...${NC}"
+                mkdir -p "$INSTALL_DIR"
+            }
+        }
     else
         echo "Usando HTTPS para clonar (repositório público - não pede senha)..."
-        git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR"
+        git clone https://github.com/mazinholeal/consultaNumero.git "$INSTALL_DIR" || {
+            echo -e "${RED}Erro ao clonar repositório. Continuando com instalação...${NC}"
+            mkdir -p "$INSTALL_DIR"
+        }
     fi
 fi
+
+# Garantir que estamos no diretório correto
+cd "$INSTALL_DIR" 2>/dev/null || {
+    echo -e "${RED}Erro: Não foi possível acessar o diretório de instalação${NC}"
+    exit 1
+}
 
 # Criar diretórios necessários
 echo -e "${YELLOW}[5/8] Criando diretórios...${NC}"
