@@ -13,7 +13,18 @@ class ConsultaDatabase {
         
         // Criar diretório se não existir
         if (!is_dir($dbDir)) {
-            mkdir($dbDir, 0755, true);
+            mkdir($dbDir, 0777, true);
+            chmod($dbDir, 0777);
+        } else {
+            // Garantir permissões de escrita
+            if (!is_writable($dbDir)) {
+                chmod($dbDir, 0777);
+            }
+        }
+        
+        // Se o arquivo do banco existe, garantir permissões de escrita
+        if (file_exists($this->dbPath) && !is_writable($this->dbPath)) {
+            chmod($this->dbPath, 0666);
         }
         
         // Conectar ao banco
