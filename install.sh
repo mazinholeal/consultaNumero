@@ -169,7 +169,7 @@ chmod 777 uploads results status database
     echo "  - Diretório: $INSTALL_DIR"
     echo "  - URL: http://$(hostname -I | awk '{print $1}')/consultanumero/"
     echo "  - Permissões configuradas"
-    echo "  - Banco de dados SQLite configurado"
+    echo "  - Sistema usando arquivos JSON (sem necessidade de banco de dados)"
     echo ""
     echo "Próximos passos:"
     echo "  1. Acesse: http://$(hostname -I | awk '{print $1}')/consultanumero/"
