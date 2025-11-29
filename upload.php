@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/database.php';
+
 // Configurações
 $uploadDir = __DIR__ . '/uploads/';
 $maxFileSize = 10 * 1024 * 1024; // 10MB
@@ -201,6 +203,15 @@ $initialStatus = [
 ];
 
 file_put_contents($statusFile, json_encode($initialStatus, JSON_PRETTY_PRINT));
+
+// Salvar no banco de dados
+try {
+    $db = new ConsultaDatabase();
+    $db->createConsulta($jobId, $file['name'], $filePath);
+} catch (Exception $e) {
+    error_log("Erro ao salvar no banco: " . $e->getMessage());
+    // Continua mesmo se falhar o banco
+}
 
 // Iniciar processamento Python em background
 $pythonScript = __DIR__ . '/process_batch.py';

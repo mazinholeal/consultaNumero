@@ -31,9 +31,9 @@
     echo -e "${YELLOW}[1/8] Atualizando sistema...${NC}"
     apt-get update -qq
 
-    # Instalar dependências
-    echo -e "${YELLOW}[2/8] Instalando dependências...${NC}"
-    apt-get install -y apache2 php php-cli python3 python3-pip curl git
+# Instalar dependências
+echo -e "${YELLOW}[2/8] Instalando dependências...${NC}"
+apt-get install -y apache2 php php-cli php-sqlite3 python3 python3-pip curl git sqlite3
 
     # Habilitar módulos do Apache
     echo -e "${YELLOW}[3/8] Configurando Apache...${NC}"
@@ -90,11 +90,11 @@ else
     fi
 fi
 
-    # Criar diretórios necessários
-    echo -e "${YELLOW}[5/8] Criando diretórios...${NC}"
-    cd "$INSTALL_DIR"
-    mkdir -p uploads results status
-    chmod 777 uploads results status
+# Criar diretórios necessários
+echo -e "${YELLOW}[5/8] Criando diretórios...${NC}"
+cd "$INSTALL_DIR"
+mkdir -p uploads results status database
+chmod 777 uploads results status database
 
     # Configurar permissões
     echo -e "${YELLOW}[6/8] Configurando permissões...${NC}"

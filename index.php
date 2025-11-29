@@ -577,6 +577,7 @@
                         clearInterval(interval);
                         progressFill.style.width = '100%';
                         progressFill.textContent = '100%';
+                        progressFill.className = 'progress-fill h-full w-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-green-500 to-green-600';
                         statusText.textContent = 'Concluído!';
                         showMessage(`<i class="fas fa-check-circle mr-2"></i>Processamento concluído! ${status.total} números processados. <a href="results.php?job_id=${jobId}" class="text-[#004C97] font-bold hover:underline ml-2"><i class="fas fa-external-link-alt mr-1"></i>Ver resultados</a>`, 'success');
                         submitBtn.disabled = false;
@@ -585,14 +586,26 @@
                         fileInfo.classList.add('hidden');
                     } else if (status.status === 'error') {
                         clearInterval(interval);
+                        progressFill.className = 'progress-fill h-full w-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-red-600 to-red-700';
                         showMessage(`<i class="fas fa-exclamation-circle mr-2"></i>Erro no processamento: ${status.message}`, 'error');
                         submitBtn.disabled = false;
-                        progressContainer.classList.add('hidden');
+                        progressContainer.classList.remove('hidden');
                     } else if (status.status === 'processing') {
                         const progress = status.progress || 0;
                         progressFill.style.width = progress + '%';
                         progressFill.textContent = progress + '%';
                         statusText.textContent = `Processando... ${status.processed || 0} de ${status.total || 0} números`;
+                        
+                        // Mudar cor conforme progresso
+                        if (progress < 25) {
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-red-500 to-orange-500';
+                        } else if (progress < 50) {
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-orange-500 to-yellow-500';
+                        } else if (progress < 75) {
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-yellow-500 to-blue-500';
+                        } else {
+                            progressFill.className = 'progress-fill h-full w-0 transition-all duration-300 flex items-center justify-center text-white text-xs font-bold bg-gradient-to-r from-blue-500 to-green-500';
+                        }
                     }
                 } catch (error) {
                     console.error('Erro ao verificar status:', error);
