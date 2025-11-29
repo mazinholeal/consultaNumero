@@ -1,57 +1,90 @@
 <?php
-// Verificar se o módulo SQLite está instalado
-if (!extension_loaded('pdo_sqlite')) {
-    die('
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <title>Erro - Módulo SQLite não instalado</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-            .error { background: #fee; border: 2px solid #fcc; padding: 20px; border-radius: 5px; }
-            code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; }
-        </style>
-    </head>
-    <body>
-        <div class="error">
-            <h1>❌ Módulo PHP SQLite não está instalado</h1>
-            <p>O módulo <code>php-sqlite3</code> é necessário para o histórico funcionar.</p>
-            <p><strong>Para instalar, execute no servidor:</strong></p>
-            <pre>sudo apt-get install -y php-sqlite3\nsudo systemctl restart apache2</pre>
-            <p><a href="index.php">← Voltar para Início</a></p>
-        </div>
-    </body>
-    </html>
-    ');
+/**
+ * Versão do histórico que funciona sem SQLite
+ * Usa apenas arquivos JSON existentes
+ */
+
+// Buscar arquivos de status
+$statusDir = __DIR__ . '/status/';
+$resultsDir = __DIR__ . '/results/';
+$uploadsDir = __DIR__ . '/uploads/';
+
+$consultas = [];
+
+if (is_dir($statusDir)) {
+    $statusFiles = glob($statusDir . '*.json');
+    $statusFiles = array_filter($statusFiles, function($file) {
+        return !preg_match('/_(checkpoint|errors)\.json$/', $file);
+    });
+    
+    foreach ($statusFiles as $statusFile) {
+        $data = json_decode(file_get_contents($statusFile), true);
+        if ($data && isset($data['job_id'])) {
+            $jobId = $data['job_id'];
+            
+            // Contar resultados
+            $totalResults = 0;
+            $resultsFile = $resultsDir . $jobId . '.json';
+            if (file_exists($resultsFile)) {
+                $results = json_decode(file_get_contents($resultsFile), true);
+                if (is_array($results)) {
+                    $totalResults = count($results);
+                }
+            }
+            
+            // Buscar arquivo de upload
+            $fileName = $data['file_name'] ?? 'arquivo_desconhecido.txt';
+            $uploadFiles = glob($uploadsDir . $jobId . '_*');
+            if (!empty($uploadFiles)) {
+                $fileName = basename($uploadFiles[0]);
+                $fileName = preg_replace('/^' . preg_quote($jobId, '/') . '_/', '', $fileName);
+            }
+            
+            $consultas[] = [
+                'job_id' => $jobId,
+                'file_name' => $fileName,
+                'status' => $data['status'] ?? 'unknown',
+                'total' => $data['total'] ?? $totalResults,
+                'processed' => $data['processed'] ?? $totalResults,
+                'progress' => $data['progress'] ?? ($totalResults > 0 ? 100 : 0),
+                'errors_count' => $data['errors_count'] ?? 0,
+                'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s', filemtime($statusFile))
+            ];
+        }
+    }
 }
 
-// Se SQLite não estiver disponível, usar versão fallback
-if (!extension_loaded('pdo_sqlite')) {
-    // Redirecionar para versão fallback que funciona sem SQLite
-    require_once __DIR__ . '/historico_fallback.php';
-    exit;
-}
+// Ordenar por data (mais recente primeiro)
+usort($consultas, function($a, $b) {
+    return strtotime($b['created_at']) - strtotime($a['created_at']);
+});
 
-require_once __DIR__ . '/database.php';
-
-try {
-    $db = new ConsultaDatabase();
-    $consultas = $db->getAllConsultas(100);
-    $stats = $db->getStats();
-} catch (Exception $e) {
-    // Se falhar, usar versão fallback
-    require_once __DIR__ . '/historico_fallback.php';
-    exit;
-}
+// Calcular estatísticas
+$stats = [
+    'total' => count($consultas),
+    'completed' => count(array_filter($consultas, fn($c) => $c['status'] === 'completed')),
+    'processing' => count(array_filter($consultas, fn($c) => $c['status'] === 'processing')),
+    'errors' => count(array_filter($consultas, fn($c) => $c['status'] === 'error'))
+];
 
 // Processar delete se solicitado
 if (isset($_GET['delete']) && !empty($_GET['delete'])) {
     $jobId = $_GET['delete'];
-    if ($db->deleteConsulta($jobId)) {
-        header('Location: historico.php?deleted=1');
-        exit;
+    $deleted = false;
+    
+    // Deletar arquivos relacionados
+    @unlink($statusDir . $jobId . '.json');
+    @unlink($statusDir . $jobId . '_checkpoint.json');
+    @unlink($statusDir . $jobId . '_errors.json');
+    @unlink($resultsDir . $jobId . '.json');
+    
+    $uploadFiles = glob($uploadsDir . $jobId . '_*');
+    foreach ($uploadFiles as $file) {
+        @unlink($file);
     }
+    
+    header('Location: historico.php?deleted=1');
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -87,6 +120,10 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
                         Histórico de Consultas
                     </h1>
                     <p class="text-gray-600 text-sm">Gerencie todas as consultas em lote realizadas</p>
+                    <p class="text-xs text-orange-600 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Modo fallback (sem SQLite) - Instale php-sqlite3 para funcionalidade completa
+                    </p>
                 </div>
                 <a href="index.php" class="px-4 py-2 bg-[#004C97] text-white rounded-lg hover:bg-[#003366] transition-colors">
                     <i class="fas fa-arrow-left mr-2"></i>Voltar
@@ -98,19 +135,19 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
         <div class="glass-effect rounded-xl p-4 mb-4">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="text-center p-3 bg-blue-50 rounded-lg">
-                    <div class="text-2xl font-bold text-[#004C97]"><?php echo $stats['total'] ?? 0; ?></div>
+                    <div class="text-2xl font-bold text-[#004C97]"><?php echo $stats['total']; ?></div>
                     <div class="text-xs text-gray-600">Total</div>
                 </div>
                 <div class="text-center p-3 bg-green-50 rounded-lg">
-                    <div class="text-2xl font-bold text-green-600"><?php echo $stats['completed'] ?? 0; ?></div>
+                    <div class="text-2xl font-bold text-green-600"><?php echo $stats['completed']; ?></div>
                     <div class="text-xs text-gray-600">Concluídas</div>
                 </div>
                 <div class="text-center p-3 bg-yellow-50 rounded-lg">
-                    <div class="text-2xl font-bold text-yellow-600"><?php echo $stats['processing'] ?? 0; ?></div>
+                    <div class="text-2xl font-bold text-yellow-600"><?php echo $stats['processing']; ?></div>
                     <div class="text-xs text-gray-600">Processando</div>
                 </div>
                 <div class="text-center p-3 bg-red-50 rounded-lg">
-                    <div class="text-2xl font-bold text-red-600"><?php echo $stats['errors'] ?? 0; ?></div>
+                    <div class="text-2xl font-bold text-red-600"><?php echo $stats['errors']; ?></div>
                     <div class="text-xs text-gray-600">Com Erro</div>
                 </div>
             </div>
