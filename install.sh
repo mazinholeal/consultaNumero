@@ -33,7 +33,7 @@
 
 # Instalar dependências
 echo -e "${YELLOW}[2/8] Instalando dependências...${NC}"
-apt-get install -y apache2 php php-cli php-sqlite3 python3 python3-pip curl git sqlite3
+apt-get install -y apache2 php php-cli python3 python3-pip curl git
 
     # Habilitar módulos do Apache
     echo -e "${YELLOW}[3/8] Configurando Apache...${NC}"
@@ -141,27 +141,9 @@ chmod 777 uploads results status database
     echo -e "${YELLOW}[8/8] Testando script Python...${NC}"
     python3 -m py_compile process_batch.py && echo -e "${GREEN}Script Python OK${NC}" || echo -e "${RED}Erro no script Python${NC}"
 
-    # Verificar se php-sqlite3 está instalado
+    # Sistema usa arquivos JSON, não precisa de SQLite
     echo ""
-    echo -e "${YELLOW}Verificando módulo PHP SQLite...${NC}"
-    if php -m | grep -q sqlite; then
-        echo -e "${GREEN}Módulo SQLite OK${NC}"
-    else
-        echo -e "${YELLOW}Instalando php-sqlite3...${NC}"
-        apt-get install -y php-sqlite3
-        systemctl restart apache2
-    fi
-
-    # Migrar resultados antigos para o banco SQLite
-    echo ""
-    echo -e "${YELLOW}Migrando resultados antigos para o banco de dados...${NC}"
-    if [ -f "$INSTALL_DIR/migrate_old_results.php" ]; then
-        php "$INSTALL_DIR/migrate_old_results.php" 2>&1 | head -20
-        echo ""
-        echo -e "${GREEN}Migração concluída!${NC}"
-    else
-        echo -e "${YELLOW}Aviso: Script de migração não encontrado${NC}"
-    fi
+    echo -e "${GREEN}Sistema configurado para usar arquivos JSON${NC}"
 
     # Configurar Apache
     echo ""

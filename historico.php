@@ -1,10 +1,4 @@
 <?php
-// Se SQLite não estiver disponível, usar versão fallback que funciona sem SQLite
-if (!extension_loaded('pdo_sqlite')) {
-    require_once __DIR__ . '/historico_fallback.php';
-    exit;
-}
-
 require_once __DIR__ . '/database.php';
 
 try {
