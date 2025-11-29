@@ -226,10 +226,10 @@
                                 Arraste e solte o arquivo aqui
                             </p>
                             <p class="text-gray-500 text-sm mb-3">ou</p>
-                            <label for="fileInput" class="inline-flex items-center px-6 py-2 bg-[#004C97] text-white rounded-lg cursor-pointer transition-all duration-300 hover:bg-[#003366] shadow-md hover:shadow-lg transform hover:scale-105">
+                            <button type="button" id="selectFileBtn" class="inline-flex items-center px-6 py-2 bg-[#004C97] text-white rounded-lg cursor-pointer transition-all duration-300 hover:bg-[#003366] shadow-md hover:shadow-lg transform hover:scale-105 border-none">
                                 <i class="fas fa-folder-open mr-2"></i>
                                 Selecionar Arquivo
-                            </label>
+                            </button>
                         </div>
                         <input type="file" id="fileInput" name="file" accept=".csv,.txt" required class="hidden">
                         <div class="file-info mt-4 p-3 bg-white rounded-lg shadow-sm hidden border-l-4 border-[#004C97]" id="fileInfo">
@@ -442,25 +442,54 @@
             }
         });
         
-        uploadArea.addEventListener('click', () => {
+        // Botão de seleção de arquivo
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        if (selectFileBtn) {
+            selectFileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Evita propagação para uploadArea
+                fileInput.click();
+            });
+        }
+        
+        // Área de upload também pode abrir seletor (mas não quando clicar no botão)
+        uploadArea.addEventListener('click', (e) => {
+            // Não abrir seletor se clicar no botão ou no fileInfo
+            if (e.target.closest('#selectFileBtn') || e.target.closest('#fileInfo')) {
+                return;
+            }
             fileInput.click();
         });
         
-        fileInput.addEventListener('change', handleFileSelect);
+        fileInput.addEventListener('change', function(e) {
+            e.stopPropagation();
+            handleFileSelect();
+        });
         
         function handleFileSelect() {
             const file = fileInput.files[0];
+            console.log('Arquivo selecionado:', file ? file.name : 'nenhum');
+            
             if (file) {
                 const maxSize = 10 * 1024 * 1024; // 10MB
                 if (file.size > maxSize) {
                     showMessage('<i class="fas fa-exclamation-circle mr-2"></i>Arquivo muito grande! Tamanho máximo: 10MB', 'error');
                     fileInput.value = '';
+                    fileInfo.classList.add('hidden');
                     return;
                 }
                 
                 fileName.textContent = file.name;
                 fileSize.textContent = formatFileSize(file.size);
                 fileInfo.classList.remove('hidden');
+                
+                // Focar no botão de submit para facilitar
+                setTimeout(() => {
+                    submitBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } else {
+                // Se não há arquivo, esconder info
+                fileInfo.classList.add('hidden');
             }
         }
         
@@ -525,6 +554,9 @@
                         statusText.textContent = 'Concluído!';
                         showMessage(`<i class="fas fa-check-circle mr-2"></i>Processamento concluído! ${status.total} números processados. <a href="results.php?job_id=${jobId}" class="text-[#004C97] font-bold hover:underline ml-2"><i class="fas fa-external-link-alt mr-1"></i>Ver resultados</a>`, 'success');
                         submitBtn.disabled = false;
+                        // Limpar arquivo selecionado após sucesso
+                        fileInput.value = '';
+                        fileInfo.classList.add('hidden');
                     } else if (status.status === 'error') {
                         clearInterval(interval);
                         showMessage(`<i class="fas fa-exclamation-circle mr-2"></i>Erro no processamento: ${status.message}`, 'error');
