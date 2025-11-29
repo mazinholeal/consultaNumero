@@ -1,7 +1,14 @@
 <?php
 /**
  * Gerenciamento de banco de dados SQLite para histórico de consultas
+ * Se SQLite não estiver disponível, usa versão fallback
  */
+
+// Se SQLite não estiver disponível, usar versão fallback
+if (!extension_loaded('pdo_sqlite')) {
+    require_once __DIR__ . '/database_fallback.php';
+    return;
+}
 
 class ConsultaDatabase {
     private $db;
