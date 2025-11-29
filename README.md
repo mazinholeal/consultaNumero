@@ -1,178 +1,164 @@
-# Sistema de Consulta de Números via API
+# ConsultaNumero - Sistema de Consulta em Lote
 
-Sistema completo para consulta de números telefônicos via API, com duas modalidades:
-- **Consulta Individual**: Para consultar poucos números diretamente na interface
-- **Consulta em Lote**: Para processar arquivos grandes com muitos números
+Sistema para consulta de números telefônicos em lote via API, com interface PHP e backend Python.
 
-Interface PHP com backend Python para processamento assíncrono.
+## 🚀 Funcionalidades
 
-## Estrutura do Projeto
+- ✅ **Consulta Individual**: Consulta um ou múltiplos números diretamente
+- ✅ **Consulta em Lote**: Upload de arquivo CSV/TXT com múltiplos números
+- ✅ **Processamento Assíncrono**: Processamento em background via Python
+- ✅ **Histórico Completo**: Todas as consultas são armazenadas e podem ser visualizadas
+- ✅ **Barra de Progresso Colorida**: Acompanhamento visual com cores da TIM
+- ✅ **Tratamento de Erros**: Sistema robusto com retry e checkpoint
+- ✅ **Paginação de Resultados**: Visualização organizada com 10, 25 ou 50 itens por página
+- ✅ **Download de Resultados**: Exportação em JSON ou CSV
+
+## 📋 Requisitos
+
+- Apache 2.4+
+- PHP 7.4+ (php-cli)
+- Python 3.6+
+- Git
+
+## 🔧 Instalação
+
+### Instalação Automática
+
+```bash
+cd /var/www/html
+git clone https://github.com/mazinholeal/consultaNumero.git
+cd consultanumero
+chmod +x install.sh
+sudo ./install.sh
+```
+
+### Instalação Manual
+
+```bash
+# Instalar dependências
+sudo apt-get update
+sudo apt-get install -y apache2 php php-cli python3 python3-pip curl git
+
+# Habilitar módulos Apache
+sudo a2enmod rewrite
+sudo a2enmod headers
+
+# Clonar repositório
+cd /var/www/html
+git clone https://github.com/mazinholeal/consultaNumero.git
+cd consultanumero
+
+# Criar diretórios e configurar permissões
+mkdir -p uploads results status database
+chmod 777 uploads results status database
+chmod +x process_batch.py
+chown -R www-data:www-data /var/www/html/consultanumero
+
+# Reiniciar Apache
+sudo systemctl restart apache2
+```
+
+## 📁 Estrutura do Projeto
 
 ```
 consultanumero/
-├── index.php          # Interface principal com abas (Individual e Lote)
-├── consult.php        # Endpoint para consulta individual (PHP)
-├── upload.php         # Processa upload e inicia processamento Python
-├── status.php         # Endpoint AJAX para verificar status
-├── results.php        # Página para visualizar resultados
-├── download.php       # Download de resultados em JSON ou CSV
-├── process_batch.py   # Script Python para processar lotes
-├── requirements.txt   # Dependências Python (nenhuma externa necessária)
-├── .htaccess         # Configurações Apache
-├── uploads/          # Arquivos enviados pelos usuários
-├── results/          # Resultados JSON das consultas
-└── status/           # Arquivos de status dos jobs
+├── index.php              # Interface principal
+├── upload.php             # Upload de arquivos
+├── consult.php            # Consulta individual
+├── status.php             # Status do processamento
+├── results.php            # Visualização de resultados
+├── historico.php          # Histórico de consultas
+├── database.php           # Gerenciamento de histórico (JSON)
+├── process_batch.py       # Script Python de processamento
+├── install.sh             # Script de instalação
+├── update.sh              # Script de atualização
+├── .htaccess              # Configurações Apache
+├── uploads/               # Arquivos enviados
+├── results/               # Resultados JSON
+├── status/                # Status e checkpoints
+└── database/              # Histórico em JSON
 ```
 
-## Requisitos
+## 🎨 Design
 
-- PHP 7.4 ou superior (com extensão cURL)
-- Python 3.6 ou superior
-- Apache com mod_rewrite habilitado
-- Permissões de escrita nos diretórios: uploads/, results/, status/
+- **Framework CSS**: Tailwind CSS
+- **Cores**: Identidade visual TIM
+  - Azul: `#004C97`
+  - Vermelho: `#E30613`
+  - Amarelo: `#FFD100`
+- **Logo**: TIM.png
 
-## Instalação
+## 📊 Armazenamento
 
-1. **Configurar permissões:**
+O sistema usa **arquivos JSON** para armazenar o histórico de consultas:
+- `database/consultas.json` - Histórico completo
+- `results/{job_id}.json` - Resultados de cada consulta
+- `status/{job_id}.json` - Status e progresso
+
+Não é necessário banco de dados SQLite ou MySQL.
+
+## 🔄 Atualização
+
+Para atualizar o projeto:
+
 ```bash
-chmod 755 uploads results status
-chmod +x process_batch.py
+cd /var/www/html/consultanumero
+./update.sh
 ```
 
-2. **Configurar Apache:**
-   - Certifique-se de que o mod_rewrite está habilitado
-   - O arquivo `.htaccess` já está configurado
+Ou execute o script de instalação novamente:
 
-3. **Testar Python:**
 ```bash
-python3 --version
+./install.sh
 ```
 
-## Configuração
+## 📝 Formato de Arquivo
 
-### Parâmetros da Consulta Individual (consult.php)
+### CSV/TXT para Consulta em Lote
 
-Você pode ajustar os seguintes parâmetros no início do arquivo:
+- Um número por linha, ou
+- Números separados por vírgula
+- Tamanho máximo: 10MB
+- Extensões: `.csv` ou `.txt`
 
-- `$MAX_NUMBERS = 100`: Limite de números por consulta individual
-- `$BATCH_SIZE = 50`: Números por requisição à API
-
-### Parâmetros do Script Python (process_batch.py)
-
-Você pode ajustar os seguintes parâmetros no início do arquivo:
-
-- `BATCH_SIZE = 50`: Números por requisição
-- `MAX_CONCURRENT_REQUESTS = 3`: Requisições simultâneas
-- `REQUEST_DELAY = 0.5`: Delay entre requisições (segundos)
-- `MAX_RETRIES = 3`: Tentativas em caso de erro
-
-### Limites PHP (.htaccess)
-
-- `upload_max_filesize = 10M`: Tamanho máximo de upload
-- `post_max_size = 10M`: Tamanho máximo de POST
-- `max_execution_time = 300`: Tempo máximo de execução
-
-## Uso
-
-### Consulta Individual
-
-1. Acesse `index.php` no navegador (primeira aba)
-2. Digite os números separados por vírgula ou um por linha
-3. Clique em "Consultar Números"
-4. Os resultados aparecem imediatamente na tabela abaixo
-
-**Limite:** Até 100 números por consulta individual
-
-### Consulta em Lote
-
-1. Acesse `index.php` e vá para a aba "Consulta em Lote"
-2. Faça upload de um arquivo CSV ou TXT com números
-3. Aguarde o processamento (acompanhe o progresso na tela)
-4. Visualize os resultados ou faça download
-
-## Formato do Arquivo
-
-O arquivo pode ter números em dois formatos:
-
-**Formato 1 - Separado por vírgula:**
-```
-11941900123,81981562716,11987654321
-```
-
-**Formato 2 - Um por linha:**
+**Exemplo:**
 ```
 11941900123
 81981562716
 11987654321
 ```
 
-## API Utilizada
+ou
 
-- **URL:** `https://painel.tridtelecom.com.br/_7port/consulta.php`
-- **Método:** GET
-- **Parâmetro:** `numero` (números separados por vírgula)
-- **Resposta:** JSON array com informações dos números
-
-## Funcionalidades
-
-### Consulta Individual
-- ✅ Interface simples para consulta rápida
-- ✅ Suporte a múltiplos números (até 100)
-- ✅ Resultados instantâneos na mesma página
-- ✅ Validação automática de números
-- ✅ Processamento em lotes automático (50 números por requisição)
-
-### Consulta em Lote
-- ✅ Upload de arquivos CSV/TXT
-- ✅ Validação de formato e tamanho
-- ✅ Processamento assíncrono em background
-- ✅ Acompanhamento de progresso em tempo real
-- ✅ Controle de taxa e concorrência de requisições
-- ✅ Tratamento de erros e retry automático
-- ✅ Visualização de resultados em tabela
-- ✅ Busca/filtro nos resultados
-- ✅ Download em JSON ou CSV
-
-### Interface
-- ✅ Sistema de abas intuitivo
-- ✅ Interface moderna e responsiva
-- ✅ Drag & drop para upload de arquivos
-
-## Segurança
-
-- Validação de extensões de arquivo
-- Limite de tamanho de upload
-- Proteção de diretórios sensíveis via .htaccess
-- Sanitização de inputs
-- Escape de outputs HTML
-
-## Troubleshooting
-
-### Erro: "Permission denied" ao executar Python
-```bash
-chmod +x process_batch.py
+```
+11941900123,81981562716,11987654321
 ```
 
-### Erro: "Cannot write to directory"
-```bash
-chown -R www-data:www-data uploads results status
-chmod 755 uploads results status
+## 🔍 API Externa
+
+O sistema consulta a API:
+```
+POST https://painel.tridtelecom.com.br/_7port/consulta.php
 ```
 
-### Processamento não inicia
-- Verifique se o Python está no PATH do Apache
-- Verifique os logs do Apache: `tail -f /var/log/apache2/error.log`
-- Teste o script Python manualmente:
-```bash
-python3 process_batch.py /caminho/arquivo.txt job_test_123
-```
+## 🛠️ Troubleshooting
 
-### Requisições muito lentas
-- Ajuste `REQUEST_DELAY` no `process_batch.py`
-- Reduza `MAX_CONCURRENT_REQUESTS` se necessário
-- Aumente `BATCH_SIZE` para processar mais números por requisição
+### Erro de Upload
+- Verificar permissões: `chmod 777 uploads results status database`
+- Verificar limites PHP: `php -i | grep upload_max_filesize`
 
-## Licença
+### Erro de Processamento
+- Verificar Python: `python3 --version`
+- Verificar logs: `tail -f /var/log/apache2/error.log`
 
-Este projeto é fornecido como está, sem garantias.
+### Histórico Vazio
+- Verificar arquivos: `ls -la database/ status/ results/`
+- O histórico é criado automaticamente ao fazer consultas
 
+## 📄 Licença
+
+Este projeto é de uso interno.
+
+## 👤 Autor
+
+Desenvolvido para consulta de números telefônicos em lote.
