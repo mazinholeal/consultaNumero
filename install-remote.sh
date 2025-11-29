@@ -50,9 +50,21 @@ echo "[4/8] Clonando repositório..."
 cd /var/www/html
 if [ -d "consultanumero" ]; then
     cd consultanumero
+    # Verificar se remote está usando HTTPS e converter para SSH
+    if git remote get-url origin 2>/dev/null | grep -q "https://"; then
+        echo "Convertendo remote de HTTPS para SSH..."
+        git remote set-url origin git@github.com:mazinholeal/consultaNumero.git
+    fi
     git pull origin main || echo "Aviso: Não foi possível atualizar"
 else
-    git clone https://github.com/mazinholeal/consultaNumero.git
+    # Tentar SSH primeiro
+    if ssh -o BatchMode=yes -o ConnectTimeout=5 git@github.com 2>&1 | grep -q "successfully authenticated"; then
+        echo "Usando SSH para clonar..."
+        git clone git@github.com:mazinholeal/consultaNumero.git
+    else
+        echo "SSH não configurado. Usando HTTPS..."
+        git clone https://github.com/mazinholeal/consultaNumero.git
+    fi
     cd consultanumero
 fi
 
