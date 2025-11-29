@@ -257,6 +257,13 @@
                     </button>
                 </form>
                 
+                <div class="mt-4">
+                    <a href="historico.php" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                        <i class="fas fa-history mr-2"></i>
+                        Ver Histórico de Consultas
+                    </a>
+                </div>
+                
                 <div class="progress-container mt-4 p-4 bg-gray-50 rounded-lg hidden" id="progressContainer">
                     <div class="flex items-center justify-between mb-2">
                         <p class="font-semibold text-gray-700 text-sm">
