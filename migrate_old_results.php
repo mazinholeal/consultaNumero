@@ -21,14 +21,88 @@ if (!is_dir($statusDir)) {
 }
 
 // Buscar todos os arquivos de status
-$statusFiles = glob($statusDir . '*.json');
-$statusFiles = array_filter($statusFiles, function($file) {
-    return !preg_match('/_(checkpoint|errors)\.json$/', $file);
-});
+$statusFiles = [];
+if (is_dir($statusDir)) {
+    $files = glob($statusDir . '*.json');
+    $statusFiles = array_filter($files, function($file) {
+        return !preg_match('/_(checkpoint|errors)\.json$/', $file);
+    });
+}
+
+// Se não houver arquivos de status mas houver arquivos de resultados, criar registros a partir dos resultados
+$resultsFiles = [];
+if (is_dir($resultsDir)) {
+    $resultsFiles = glob($resultsDir . '*.json');
+    $resultsFiles = array_filter($resultsFiles, function($file) {
+        return basename($file) !== '.gitkeep';
+    });
+}
 
 $imported = 0;
 $skipped = 0;
 $errors = 0;
+
+// Se não há arquivos de status mas há resultados, criar registros a partir dos resultados
+if (empty($statusFiles) && !empty($resultsFiles)) {
+    echo "⚠️  Nenhum arquivo de status encontrado, mas há " . count($resultsFiles) . " arquivo(s) de resultados.\n";
+    echo "Criando registros a partir dos arquivos de resultados...\n\n";
+    
+    foreach ($resultsFiles as $resultsFile) {
+        $jobId = basename($resultsFile, '.json');
+        
+        // Verificar se já existe no banco
+        $existing = $db->getConsulta($jobId);
+        if ($existing) {
+            echo "⏭️  Já existe: $jobId\n";
+            $skipped++;
+            continue;
+        }
+        
+        $results = json_decode(file_get_contents($resultsFile), true);
+        $totalResults = is_array($results) ? count($results) : 0;
+        
+        // Tentar encontrar arquivo de upload
+        $filePath = null;
+        $fileName = 'arquivo_desconhecido.txt';
+        $uploadFiles = glob($uploadsDir . $jobId . '_*');
+        if (!empty($uploadFiles)) {
+            $filePath = $uploadFiles[0];
+            $fileName = basename($filePath);
+            $fileName = preg_replace('/^' . preg_quote($jobId, '/') . '_/', '', $fileName);
+        }
+        
+        try {
+            $db->createConsulta($jobId, $fileName, $filePath);
+            $db->updateConsulta($jobId, [
+                'status' => 'completed',
+                'total' => $totalResults,
+                'processed' => $totalResults,
+                'progress' => 100,
+                'errors_count' => 0,
+                'message' => 'Migrado de arquivo de resultados'
+            ]);
+            
+            echo "✅ Criado a partir de resultados: $jobId - $fileName ($totalResults resultados)\n";
+            $imported++;
+        } catch (Exception $e) {
+            echo "❌ Erro ao criar $jobId: " . $e->getMessage() . "\n";
+            $errors++;
+        }
+    }
+    
+    echo "\n========================================\n";
+    echo "Migração Concluída!\n";
+    echo "========================================\n";
+    echo "✅ Importados: $imported\n";
+    echo "⏭️  Ignorados (já existentes): $skipped\n";
+    echo "❌ Erros: $errors\n";
+    exit(0);
+}
+
+if (empty($statusFiles)) {
+    echo "Nenhum arquivo de status encontrado e nenhum arquivo de resultados para migrar!\n";
+    exit(0);
+}
 
 foreach ($statusFiles as $statusFile) {
     $statusData = json_decode(file_get_contents($statusFile), true);
