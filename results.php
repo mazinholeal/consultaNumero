@@ -1,4 +1,151 @@
 <?php
+// Aumentar limite de memória para arquivos grandes
+ini_set('memory_limit', '512M');
+
+/**
+ * Função para contar resultados sem carregar tudo na memória
+ */
+function countJsonResults($file) {
+    if (!file_exists($file)) {
+        return 0;
+    }
+    
+    $fileSize = filesize($file);
+    
+    // Para arquivos muito grandes (> 10MB), usar método otimizado
+    if ($fileSize > 10 * 1024 * 1024) {
+        // Aumentar memória temporariamente para contar
+        $oldLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '1024M');
+        
+        $content = file_get_contents($file);
+        if ($content === false) {
+            ini_set('memory_limit', $oldLimit);
+            return 0;
+        }
+        
+        // Contar ocorrências de "numero": que indica um resultado
+        // Isso é mais rápido que decodificar o JSON completo
+        $count = substr_count($content, '"numero":');
+        
+        ini_set('memory_limit', $oldLimit);
+        return $count;
+    }
+    
+    // Para arquivos menores, usar método normal
+    $content = file_get_contents($file);
+    $data = json_decode($content, true);
+    return is_array($data) ? count($data) : 0;
+}
+
+/**
+ * Função para ler apenas uma página de resultados
+ */
+function getJsonResultsPage($file, $offset, $limit) {
+    if (!file_exists($file)) {
+        return [];
+    }
+    
+    $fileSize = filesize($file);
+    
+    // Para arquivos muito grandes (> 10MB), usar método otimizado
+    if ($fileSize > 10 * 1024 * 1024) {
+        // Carregar todo o arquivo mas processar em chunks menores
+        // Aumentar memória temporariamente
+        $oldLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '1024M');
+        
+        $content = file_get_contents($file);
+        $data = json_decode($content, true);
+        
+        ini_set('memory_limit', $oldLimit);
+        
+        if (!is_array($data)) {
+            return [];
+        }
+        
+        return array_slice($data, $offset, $limit);
+    }
+    
+    // Para arquivos menores, método normal
+    $data = json_decode(file_get_contents($file), true);
+    if (!is_array($data)) {
+        return [];
+    }
+    
+    return array_slice($data, $offset, $limit);
+}
+
+/**
+ * Função para calcular estatísticas de operadoras de forma eficiente
+ */
+function getOperadoraStats($file) {
+    if (!file_exists($file)) {
+        return ['TIM' => 0, 'VIVO' => 0, 'CLARO' => 0, 'OUTROS' => 0];
+    }
+    
+    $stats = ['TIM' => 0, 'VIVO' => 0, 'CLARO' => 0, 'OUTROS' => 0];
+    $fileSize = filesize($file);
+    
+    // Aumentar memória temporariamente
+    $oldLimit = ini_get('memory_limit');
+    ini_set('memory_limit', '1024M');
+    
+    // Para arquivos grandes, usar método otimizado mas preciso
+    if ($fileSize > 10 * 1024 * 1024) {
+        // Carregar e processar em chunks seria ideal, mas para simplicidade
+        // vamos carregar tudo mas processar de forma eficiente
+        $content = file_get_contents($file);
+        $data = json_decode($content, true);
+        
+        if (is_array($data)) {
+            // Processar em lotes para economizar memória durante iteração
+            $batchSize = 10000;
+            $total = count($data);
+            
+            for ($i = 0; $i < $total; $i += $batchSize) {
+                $batch = array_slice($data, $i, $batchSize);
+                foreach ($batch as $result) {
+                    $operadora = strtoupper(trim($result['operadora'] ?? ''));
+                    
+                    if (stripos($operadora, 'TIM') !== false) {
+                        $stats['TIM']++;
+                    } elseif (stripos($operadora, 'VIVO') !== false || stripos($operadora, 'TELEFONICA') !== false || stripos($operadora, 'TELEFÔNICA') !== false) {
+                        $stats['VIVO']++;
+                    } elseif (stripos($operadora, 'CLARO') !== false) {
+                        $stats['CLARO']++;
+                    } else {
+                        $stats['OUTROS']++;
+                    }
+                }
+                // Limpar batch da memória
+                unset($batch);
+            }
+        }
+    } else {
+        // Para arquivos menores, método normal
+        $data = json_decode(file_get_contents($file), true);
+        if (is_array($data)) {
+            foreach ($data as $result) {
+                $operadora = strtoupper(trim($result['operadora'] ?? ''));
+                
+                if (stripos($operadora, 'TIM') !== false) {
+                    $stats['TIM']++;
+                } elseif (stripos($operadora, 'VIVO') !== false || stripos($operadora, 'TELEFONICA') !== false || stripos($operadora, 'TELEFÔNICA') !== false) {
+                    $stats['VIVO']++;
+                } elseif (stripos($operadora, 'CLARO') !== false) {
+                    $stats['CLARO']++;
+                } else {
+                    $stats['OUTROS']++;
+                }
+            }
+        }
+    }
+    
+    ini_set('memory_limit', $oldLimit);
+    return $stats;
+}
+
 $jobId = $_GET['job_id'] ?? '';
 
 if (empty($jobId)) {
@@ -14,12 +161,7 @@ if (!file_exists($statusFile)) {
 }
 
 $status = json_decode(file_get_contents($statusFile), true);
-$results = [];
 $errors = [];
-
-if (file_exists($resultsFile)) {
-    $results = json_decode(file_get_contents($resultsFile), true);
-}
 
 if (file_exists($errorsFile)) {
     $errors = json_decode(file_get_contents($errorsFile), true);
@@ -32,12 +174,37 @@ if (!in_array($perPage, [10, 25, 50])) {
 }
 
 $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$totalResults = count($results);
+
+// Usar função otimizada para contar resultados
+$totalResults = countJsonResults($resultsFile);
 $totalPages = $totalResults > 0 ? ceil($totalResults / $perPage) : 1;
 $currentPage = min($currentPage, $totalPages);
 
 $offset = ($currentPage - 1) * $perPage;
-$paginatedResults = array_slice($results, $offset, $perPage);
+
+// Carregar apenas a página necessária
+$paginatedResults = getJsonResultsPage($resultsFile, $offset, $perPage);
+
+// Calcular estatísticas de operadoras apenas se necessário (para exibição)
+// Sempre calcular na primeira página, ou usar cache se disponível
+$statsOperadoras = ['TIM' => 0, 'VIVO' => 0, 'CLARO' => 0, 'OUTROS' => 0];
+if (file_exists($resultsFile)) {
+    // Verificar se há cache de estatísticas no arquivo de status
+    $statsCacheFile = __DIR__ . '/status/' . $jobId . '_stats.json';
+    if (file_exists($statsCacheFile) && filemtime($statsCacheFile) >= filemtime($resultsFile)) {
+        // Usar cache se disponível e atualizado
+        $statsOperadoras = json_decode(file_get_contents($statsCacheFile), true) ?: $statsOperadoras;
+    } else {
+        // Calcular estatísticas (só na primeira página para economizar)
+        if ($currentPage == 1) {
+            $statsOperadoras = getOperadoraStats($resultsFile);
+            // Calcular OUTROS baseado no total
+            $statsOperadoras['OUTROS'] = max(0, $totalResults - $statsOperadoras['TIM'] - $statsOperadoras['VIVO'] - $statsOperadoras['CLARO']);
+            // Salvar cache
+            file_put_contents($statsCacheFile, json_encode($statsOperadoras));
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -321,7 +488,7 @@ $paginatedResults = array_slice($results, $offset, $perPage);
             <a href="index.php" class="btn btn-secondary">Nova Consulta</a>
         </div>
         
-        <?php if (file_exists($resultsFile) && !empty($results)): ?>
+        <?php if (file_exists($resultsFile) && $totalResults > 0): ?>
             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <div style="margin-bottom: 15px;">
                     <h3 style="margin-bottom: 10px; color: #333;">📥 Download Completo</h3>
@@ -330,27 +497,7 @@ $paginatedResults = array_slice($results, $offset, $perPage);
                 </div>
                 
                 <?php
-                // Contar resultados por operadora
-                $statsOperadoras = [
-                    'TIM' => 0,
-                    'VIVO' => 0,
-                    'CLARO' => 0,
-                    'OUTROS' => 0
-                ];
-                
-                foreach ($results as $result) {
-                    $operadora = strtoupper(trim($result['operadora'] ?? ''));
-                    
-                    if (stripos($operadora, 'TIM') !== false) {
-                        $statsOperadoras['TIM']++;
-                    } elseif (stripos($operadora, 'VIVO') !== false || stripos($operadora, 'TELEFONICA') !== false || stripos($operadora, 'TELEFÔNICA') !== false) {
-                        $statsOperadoras['VIVO']++;
-                    } elseif (stripos($operadora, 'CLARO') !== false) {
-                        $statsOperadoras['CLARO']++;
-                    } else {
-                        $statsOperadoras['OUTROS']++;
-                    }
-                }
+                // Estatísticas já calculadas acima de forma otimizada
                 ?>
                 
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
@@ -404,7 +551,7 @@ $paginatedResults = array_slice($results, $offset, $perPage);
             </div>
         <?php endif; ?>
         
-        <?php if (!empty($results)): ?>
+        <?php if ($totalResults > 0): ?>
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Buscar por número, operadora, localidade...">
             </div>

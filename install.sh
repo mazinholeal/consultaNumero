@@ -72,20 +72,36 @@ if [ -d "$INSTALL_DIR" ]; then
             echo -e "${YELLOW}Aviso: Não foi possível buscar atualizações. Continuando com código existente...${NC}"
         }
         
+        # IMPORTANTE: Fazer backup do arquivo de consultas ANTES de qualquer operação git
+        # Este arquivo não está no git e pode ser perdido em git reset --hard
+        if [ -f "$INSTALL_DIR/database/consultas.json" ] && [ -s "$INSTALL_DIR/database/consultas.json" ]; then
+            BACKUP_FILE="$INSTALL_DIR/database/consultas.json.backup.$(date +%Y%m%d_%H%M%S)"
+            echo "Fazendo backup do histórico de consultas..."
+            cp "$INSTALL_DIR/database/consultas.json" "$BACKUP_FILE" 2>/dev/null || true
+            echo "Backup salvo em: $BACKUP_FILE"
+        fi
+        
         git pull origin main 2>/dev/null || {
             echo -e "${YELLOW}Aviso: Não foi possível atualizar. Tentando resetar...${NC}"
-            # Fazer backup dos dados antes de resetar
-            if [ -f "$INSTALL_DIR/database/consultas.json" ] && [ -s "$INSTALL_DIR/database/consultas.json" ]; then
-                echo "Fazendo backup do histórico antes de resetar..."
-                cp "$INSTALL_DIR/database/consultas.json" "$INSTALL_DIR/database/consultas.json.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
-            fi
             git reset --hard origin/main 2>/dev/null || {
                 echo -e "${YELLOW}Aviso: Não foi possível resetar. Continuando com código existente...${NC}"
             }
-            # Tentar recuperar histórico após reset
-            if [ -f "$INSTALL_DIR/recover_history.php" ]; then
-                echo "Tentando recuperar histórico..."
-                php "$INSTALL_DIR/recover_history.php" 2>/dev/null || true
+            
+            # Restaurar consultas.json após reset (se backup existe)
+            if [ ! -f "$INSTALL_DIR/database/consultas.json" ] || [ ! -s "$INSTALL_DIR/database/consultas.json" ]; then
+                LATEST_BACKUP=$(ls -t "$INSTALL_DIR/database/consultas.json.backup."* 2>/dev/null | head -1)
+                if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
+                    echo "Restaurando histórico de consultas do backup após reset..."
+                    cp "$LATEST_BACKUP" "$INSTALL_DIR/database/consultas.json" 2>/dev/null || true
+                    chmod 666 "$INSTALL_DIR/database/consultas.json" 2>/dev/null || true
+                    chown www-data:www-data "$INSTALL_DIR/database/consultas.json" 2>/dev/null || true
+                else
+                    echo "Tentando recuperar histórico dos arquivos de status..."
+                    # Tentar recuperar histórico após reset
+                    if [ -f "$INSTALL_DIR/recover_history.php" ]; then
+                        php "$INSTALL_DIR/recover_history.php" 2>/dev/null || true
+                    fi
+                fi
             fi
         }
         echo -e "${GREEN}Código atualizado!${NC}"
